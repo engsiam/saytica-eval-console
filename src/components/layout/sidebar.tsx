@@ -52,7 +52,7 @@ export function Sidebar() {
       <div className="border-t border-zinc-200 dark:border-zinc-800 p-3">
         <div className="flex items-center justify-between rounded-lg px-3 py-2">
           <a
-            href="https://github.com"
+            href="https://github.com/engsiam/saytica-eval-console"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
