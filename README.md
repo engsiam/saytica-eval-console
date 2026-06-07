@@ -606,5 +606,3 @@ Insights (`getInsights()`) are computed in the browser from the full dataset aft
 ### Hydration safety
 
 `ModeToggle` uses a `mounted` state flag initialized to `false`, set to `true` in `useEffect`. Until mounted, it renders a static icon with a hydration-safe aria-label. `useLocalStorage` reads from `window.localStorage` inside `useEffect` rather than during SSR, so the server-rendered HTML matches the initial client render regardless of what is in localStorage.
-#   s a y t i c a - e v a l - c o n s o l e  
- 
