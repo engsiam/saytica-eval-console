@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ThemeProvider } from "@/components/layout/theme-provider";
+import { ThemeProvider } from "next-themes";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { CommandPalette } from "@/components/layout/command-palette";
+import { ErrorBoundary } from "@/components/layout/error-boundary";
+import { SkipLink } from "@/components/layout/skip-link";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -40,13 +42,16 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="lg:pl-60">
-            <Sidebar />
-            <MobileNav />
-            <main className="min-h-[calc(100vh-3.5rem)] p-4 sm:p-6 lg:p-8 lg:min-h-screen">
-              {children}
-            </main>
-          </div>
+          <SkipLink />
+          <ErrorBoundary>
+            <div className="lg:pl-60">
+              <Sidebar />
+              <MobileNav />
+              <main id="main-content" className="min-h-[calc(100vh-3.5rem)] p-4 sm:p-6 lg:p-8 lg:min-h-screen">
+                {children}
+              </main>
+            </div>
+          </ErrorBoundary>
           <CommandPalette />
         </ThemeProvider>
       </body>

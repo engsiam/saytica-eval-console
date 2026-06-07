@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import {
   Award,
   Zap,
@@ -19,7 +20,7 @@ interface InsightCardsProps {
 
 function SkeletonCard() {
   return (
-    <Card className="animate-pulse">
+    <Card aria-hidden="true" className="animate-pulse">
       <CardContent className="p-5">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-zinc-200 dark:bg-zinc-800" />
@@ -34,15 +35,18 @@ function SkeletonCard() {
   );
 }
 
-export function InsightCards({ insights, loading }: InsightCardsProps) {
+export const InsightCards = memo(function InsightCards({
+  insights,
+  loading,
+}: InsightCardsProps) {
   if (loading) {
     return (
-      <>
+      <div role="status" aria-live="polite" aria-label="Loading insights" className="contents">
         <SkeletonCard />
         <SkeletonCard />
         <SkeletonCard />
         <SkeletonCard />
-      </>
+      </div>
     );
   }
 
@@ -109,6 +113,7 @@ export function InsightCards({ insights, loading }: InsightCardsProps) {
               <div className="flex items-start gap-3">
                 <div
                   className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${card.color} transition-transform group-hover:scale-105`}
+                  aria-hidden="true"
                 >
                   <Icon className="h-5 w-5" />
                 </div>
@@ -121,7 +126,7 @@ export function InsightCards({ insights, loading }: InsightCardsProps) {
                       {card.value}
                     </p>
                     {TrendIcon && (
-                      <TrendIcon className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />
+                      <TrendIcon className="h-4 w-4 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
                     )}
                   </div>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
@@ -135,4 +140,4 @@ export function InsightCards({ insights, loading }: InsightCardsProps) {
       })}
     </>
   );
-}
+});

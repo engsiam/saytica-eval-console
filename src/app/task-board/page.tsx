@@ -17,6 +17,7 @@ export default function TaskBoardPage() {
     error,
     updatingTaskId,
     updateTaskStatus,
+    refetch,
   } = useTasks(role);
 
   return (
@@ -24,7 +25,7 @@ export default function TaskBoardPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <KanbanSquare className="h-5 w-5 text-indigo-500" />
+            <KanbanSquare className="h-5 w-5 text-indigo-500" aria-hidden="true" />
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
               Task Board
             </h1>
@@ -45,12 +46,14 @@ export default function TaskBoardPage() {
           error={error}
           updatingTaskId={updatingTaskId}
           onStatusChange={updateTaskStatus}
+          onRetry={refetch}
         />
       ) : (
         <ClientDashboard
           summary={summary}
           loading={loading}
           error={error}
+          onRetry={refetch}
         />
       )}
     </div>

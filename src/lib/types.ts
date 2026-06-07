@@ -1,9 +1,19 @@
-export type TaskStatus = "pending" | "in-progress" | "done";
+export type TaskId = string;
+export type ModelId = string;
+export type ProjectId = string;
+
+export const TASK_STATUSES = ["pending", "in-progress", "done"] as const;
+export type TaskStatus = (typeof TASK_STATUSES)[number];
+
+export const SORT_FIELDS = ["accuracy", "latency", "costPer1k", "evaluatedAt"] as const;
+export type SortField = (typeof SORT_FIELDS)[number];
+
+export type SortDirection = "asc" | "desc";
 
 export type Role = "annotator" | "client";
 
 export interface ModelEvaluation {
-  id: string;
+  id: ModelId;
   model: string;
   provider: string;
   accuracy: number | null;
@@ -13,11 +23,11 @@ export interface ModelEvaluation {
 }
 
 export interface Task {
-  id: string;
+  id: TaskId;
   title: string;
   description: string;
   status: TaskStatus;
-  projectId: string;
+  projectId: ProjectId;
   projectName: string;
   assignedTo: string;
   createdAt: string;
@@ -34,18 +44,11 @@ export interface ClientSummary {
 }
 
 export interface ProjectSummary {
-  projectId: string;
+  projectId: ProjectId;
   projectName: string;
   totalTasks: number;
   completedTasks: number;
   completionPercentage: number;
-}
-
-export interface InsightCard {
-  label: string;
-  value: string;
-  subtext: string;
-  icon: string;
 }
 
 export interface LeaderboardInsights {
@@ -55,6 +58,43 @@ export interface LeaderboardInsights {
   totalModels: number;
 }
 
-export type SortField = "accuracy" | "latency" | "costPer1k" | "evaluatedAt";
+export interface SortState {
+  field: SortField | null;
+  direction: SortDirection;
+}
 
-export type SortDirection = "asc" | "desc";
+export interface ApiErrorResponse {
+  success: false;
+  error: {
+    message: string;
+    code: string;
+  };
+}
+
+export interface ApiSuccess<T> {
+  success: true;
+  data: T;
+}
+
+export type ApiResponse<T> = ApiSuccess<T> | ApiErrorResponse;
+
+export interface ModelsApiData {
+  models: ModelEvaluation[];
+  providers: string[];
+}
+
+export interface TasksApiData {
+  tasks: Task[];
+}
+
+export interface SummaryApiData {
+  summary: ClientSummary;
+}
+
+export function isTaskStatus(value: string): value is TaskStatus {
+  return TASK_STATUSES.includes(value as TaskStatus);
+}
+
+export function isSortField(value: string): value is SortField {
+  return SORT_FIELDS.includes(value as SortField);
+}

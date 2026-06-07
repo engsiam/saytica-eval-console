@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import {
   Clock,
   CheckCircle2,
@@ -23,28 +24,28 @@ const statusActions: {
 }[] = [
   {
     status: "pending",
-    label: "Mark Pending",
+    label: "Pending",
     icon: Clock,
     color:
       "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800",
   },
   {
     status: "in-progress",
-    label: "Start Progress",
+    label: "In Progress",
     icon: PlayCircle,
     color:
       "text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/50",
   },
   {
     status: "done",
-    label: "Mark Done",
+    label: "Done",
     icon: CheckCircle2,
     color:
       "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50",
   },
 ];
 
-export function TaskCard({
+export const TaskCard = memo(function TaskCard({
   task,
   isUpdating,
   onStatusChange,
@@ -59,13 +60,12 @@ export function TaskCard({
   return (
     <div
       className={cn(
-        "rounded-xl border p-4 transition-all duration-200",
+        "rounded-xl border p-4 transition-all duration-200 hover:shadow-lg hover:border-zinc-300 dark:hover:border-zinc-700",
         task.status === "done"
           ? "border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/30 dark:bg-emerald-950/10"
           : task.status === "in-progress"
             ? "border-amber-200 dark:border-amber-900/50 bg-amber-50/30 dark:bg-amber-950/10"
             : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950",
-        "hover:shadow-md",
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -80,6 +80,7 @@ export function TaskCard({
                     ? "text-amber-500"
                     : "text-zinc-400",
               )}
+              aria-hidden="true"
             />
             <span
               className={cn(
@@ -103,32 +104,39 @@ export function TaskCard({
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+      <div
+        className="flex items-center gap-1.5 mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800"
+        role="group"
+        aria-label={`Change status for task: ${task.title}`}
+      >
         {statusActions.map((action) => {
           const ActionIcon = action.icon;
+          const isActive = task.status === action.status;
           return (
             <button
               key={action.status}
               onClick={() => onStatusChange(task.id, action.status)}
-              disabled={task.status === action.status || isUpdating}
+              disabled={isActive || isUpdating}
+              aria-pressed={isActive}
+              aria-label={`${task.status === action.status ? "Current: " : "Set to "}${action.label}`}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all",
+                "flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-all min-h-[36px]",
                 action.color,
-                task.status === action.status &&
-                  "opacity-50 cursor-not-allowed",
+                isActive && "opacity-50 cursor-not-allowed ring-1 ring-inset ring-current",
+                !isActive && !isUpdating && "hover:scale-[1.02] active:scale-[0.98]",
                 isUpdating && "animate-pulse",
               )}
             >
               {isUpdating ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
               ) : (
-                <ActionIcon className="h-3 w-3" />
+                <ActionIcon className="h-3.5 w-3.5" aria-hidden="true" />
               )}
-              {action.label}
+              <span className="hidden xs:inline">{action.label}</span>
             </button>
           );
         })}
       </div>
     </div>
   );
-}
+});

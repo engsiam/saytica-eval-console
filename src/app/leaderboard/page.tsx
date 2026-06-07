@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useCallback } from "react";
 import { Trophy, Download } from "lucide-react";
 import { useModels } from "@/hooks/use-models";
 import { getInsights } from "@/services/model-service";
@@ -8,7 +9,8 @@ import { SearchBar } from "@/components/leaderboard/search-bar";
 import { ProviderFilter } from "@/components/leaderboard/provider-filter";
 import { LeaderboardTable } from "@/components/leaderboard/leaderboard-table";
 import { Button } from "@/components/ui/button";
-import type { LeaderboardInsights, ModelEvaluation } from "@/lib/types";
+import { pluralize } from "@/lib/utils";
+import type { ModelEvaluation, SortState } from "@/lib/types";
 
 function exportCSV(models: ModelEvaluation[]) {
   const headers = [
@@ -54,18 +56,32 @@ export default function LeaderboardPage() {
     setProvider,
     setSortField,
     setSortDirection,
+    refetch,
   } = useModels();
 
-  const insights: LeaderboardInsights | null = loading
-    ? null
-    : getInsights();
+  const insights = useMemo(() => (loading ? null : getInsights()), [loading]);
+
+  const sort: SortState = useMemo(
+    () => ({ field: sortField, direction: sortDirection }),
+    [sortField, sortDirection],
+  );
+
+  const handleSortChange = useCallback(
+    (newSort: SortState) => {
+      setSortField(newSort.field);
+      setSortDirection(newSort.direction);
+    },
+    [setSortField, setSortDirection],
+  );
+
+  const handleExport = useCallback(() => exportCSV(models), [models]);
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Trophy className="h-5 w-5 text-amber-500" />
+            <Trophy className="h-5 w-5 text-amber-500" aria-hidden="true" />
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
               Model Leaderboard
             </h1>
@@ -78,15 +94,16 @@ export default function LeaderboardPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => exportCSV(models)}
+          onClick={handleExport}
           className="hidden sm:flex gap-2"
+          aria-label="Export leaderboard data as CSV"
         >
-          <Download className="h-4 w-4" />
+          <Download className="h-4 w-4" aria-hidden="true" />
           Export CSV
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" role="group" aria-label="Leaderboard insights">
         <InsightCards insights={insights} loading={loading} />
       </div>
 
@@ -108,17 +125,20 @@ export default function LeaderboardPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => exportCSV(models)}
+          onClick={handleExport}
           className="sm:hidden gap-2"
+          aria-label="Export leaderboard data as CSV"
         >
-          <Download className="h-4 w-4" />
+          <Download className="h-4 w-4" aria-hidden="true" />
           Export CSV
         </Button>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between" aria-live="polite">
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          {loading ? "Loading..." : `${models.length} model${models.length === 1 ? "" : "s"} found`}
+          {loading
+            ? "Loading..."
+            : `${models.length} ${pluralize(models.length, "model")} found`}
         </p>
       </div>
 
@@ -127,10 +147,9 @@ export default function LeaderboardPage() {
         loading={loading}
         error={error}
         insights={insights}
-        sortField={sortField}
-        sortDirection={sortDirection}
-        onSort={setSortField}
-        onDirectionChange={setSortDirection}
+        sort={sort}
+        onSortChange={handleSortChange}
+        onRetry={refetch}
       />
     </div>
   );

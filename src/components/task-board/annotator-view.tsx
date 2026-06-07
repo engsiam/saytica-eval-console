@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertCircle, ListTodo, CheckCircle2, PlayCircle, Clock } from "lucide-react";
+import { memo } from "react";
+import { AlertCircle, ListTodo, CheckCircle2, PlayCircle, Clock, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TaskCard } from "./task-card";
 import type { Task, TaskStatus } from "@/lib/types";
@@ -11,11 +12,12 @@ interface AnnotatorViewProps {
   error: string | null;
   updatingTaskId: string | null;
   onStatusChange: (id: string, status: TaskStatus) => void;
+  onRetry?: () => void;
 }
 
 function SkeletonTaskCard() {
   return (
-    <div className="animate-pulse rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
+    <div className="animate-pulse rounded-xl border border-zinc-200 dark:border-zinc-800 p-4" aria-hidden="true">
       <div className="flex items-center gap-2 mb-3">
         <div className="h-4 w-4 rounded bg-zinc-200 dark:bg-zinc-800" />
         <div className="h-5 w-20 rounded-full bg-zinc-200 dark:bg-zinc-800" />
@@ -28,35 +30,47 @@ function SkeletonTaskCard() {
   );
 }
 
-export function AnnotatorView({
+export const AnnotatorView = memo(function AnnotatorView({
   tasks,
   loading,
   error,
   updatingTaskId,
   onStatusChange,
+  onRetry,
 }: AnnotatorViewProps) {
   if (loading) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <SkeletonTaskCard key={i} />
-        ))}
+      <div role="status" aria-live="polite" aria-label="Loading tasks">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonTaskCard key={i} />
+          ))}
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="flex flex-col items-center justify-center py-16 text-center" role="alert">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 dark:bg-red-950/50 mb-4">
           <AlertCircle className="h-6 w-6 text-red-500" />
         </div>
         <p className="text-sm font-medium text-red-600 dark:text-red-400">
           Failed to load tasks
         </p>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 mb-4">
           {error}
         </p>
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Retry
+          </button>
+        )}
       </div>
     );
   }
@@ -82,8 +96,8 @@ export function AnnotatorView({
   const doneCount = tasks.filter((t) => t.status === "done").length;
 
   return (
-    <>
-      <div className="grid grid-cols-3 gap-3">
+    <div aria-live="polite">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6" role="group" aria-label="Task status summary">
         {[
           {
             label: "Pending",
@@ -116,7 +130,7 @@ export function AnnotatorView({
                 stat.className,
               )}
             >
-              <Icon className="h-5 w-5 shrink-0" />
+              <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider">
                   {stat.label}
@@ -140,6 +154,6 @@ export function AnnotatorView({
           />
         ))}
       </div>
-    </>
+    </div>
   );
-}
+});

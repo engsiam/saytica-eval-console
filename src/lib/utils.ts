@@ -5,9 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(
-  date: string | null | undefined,
-): string {
+export function formatDate(date: string | null | undefined): string {
   if (!date) return "N/A";
   try {
     return new Intl.DateTimeFormat("en-US", {
@@ -83,9 +81,9 @@ export function getCostColor(value: number | null): string {
   return "text-red-600 dark:text-red-400";
 }
 
-export function compareNullable(
-  a: number | string | null | undefined,
-  b: number | string | null | undefined,
+export function compareNullable<T extends number | string>(
+  a: T | null | undefined,
+  b: T | null | undefined,
   direction: "asc" | "desc" = "asc",
 ): number {
   if (a === null || a === undefined) return 1;
@@ -94,6 +92,10 @@ export function compareNullable(
   return direction === "asc" ? cmp : -cmp;
 }
 
-export function generateId(): string {
-  return Math.random().toString(36).substring(2, 11);
+export function formatPercentage(pct: number): string {
+  return `${Math.min(100, Math.max(0, pct))}%`;
+}
+
+export function pluralize(count: number, singular: string, plural?: string): string {
+  return count === 1 ? singular : (plural ?? `${singular}s`);
 }

@@ -4,31 +4,29 @@
 import {
   flexRender,
   getCoreRowModel,
-  getSortedRowModel,
   useReactTable,
   createColumnHelper,
-  type SortingState,
 } from "@tanstack/react-table";
-import { useState, useMemo } from "react";
+import { useMemo, memo } from "react";
 import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
   Medal,
   AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { cn, formatAccuracy, formatCost, formatDate, formatLatency, getAccuracyColor, getLatencyColor, getCostColor } from "@/lib/utils";
-import type { ModelEvaluation, SortField, SortDirection, LeaderboardInsights } from "@/lib/types";
+import type { ModelEvaluation, LeaderboardInsights, SortState } from "@/lib/types";
 
 interface LeaderboardTableProps {
   models: ModelEvaluation[];
   loading: boolean;
   error: string | null;
   insights: LeaderboardInsights | null;
-  sortField: SortField | null;
-  sortDirection: SortDirection;
-  onSort: (field: SortField | null) => void;
-  onDirectionChange: (dir: SortDirection) => void;
+  sort: SortState;
+  onSortChange: (sort: SortState) => void;
+  onRetry?: () => void;
 }
 
 function rankToMedal(rank: number) {
@@ -118,7 +116,7 @@ function EmptyState() {
   );
 }
 
-function ErrorState({ message }: { message: string }) {
+function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <tr>
       <td colSpan={7}>
@@ -129,49 +127,33 @@ function ErrorState({ message }: { message: string }) {
           <p className="text-sm font-medium text-red-600 dark:text-red-400">
             Failed to load models
           </p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 mb-4">
             {message}
           </p>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition-colors dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Retry
+            </button>
+          )}
         </div>
       </td>
     </tr>
   );
 }
 
-export function LeaderboardTable({
+export const LeaderboardTable = memo(function LeaderboardTable({
   models,
   loading,
   error,
   insights,
-  sortField,
-  sortDirection,
-  onSort,
-  onDirectionChange,
+  sort,
+  onSortChange,
+  onRetry,
 }: LeaderboardTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([]);
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      onDirectionChange(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      onSort(field);
-      onDirectionChange("desc");
-    }
-  };
-
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) {
-      return (
-        <ArrowUpDown className="ml-1 h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />
-      );
-    }
-    return sortDirection === "asc" ? (
-      <ArrowUp className="ml-1 h-3.5 w-3.5 text-zinc-900 dark:text-zinc-50" />
-    ) : (
-      <ArrowDown className="ml-1 h-3.5 w-3.5 text-zinc-900 dark:text-zinc-50" />
-    );
-  };
-
   const columnHelper = createColumnHelper<ModelEvaluation>();
 
   const columns = useMemo(
@@ -185,15 +167,13 @@ export function LeaderboardTable({
           const MedalIcon = medal?.icon;
           if (MedalIcon && medal) {
             return (
-              <div className="flex items-center justify-center w-8">
-                <MedalIcon
-                  className={cn("h-4 w-4", medal.className)}
-                />
+              <div className="flex items-center justify-center w-8" aria-label={`Rank #${rank + 1}`}>
+                <MedalIcon className={cn("h-4 w-4", medal.className)} aria-hidden="true" />
               </div>
             );
           }
           return (
-            <span className="text-xs text-zinc-400 dark:text-zinc-500 w-8 text-center block">
+            <span className="text-xs text-zinc-400 dark:text-zinc-500 w-8 text-center block" aria-label={`Rank #${rank + 1}`}>
               #{rank + 1}
             </span>
           );
@@ -210,16 +190,16 @@ export function LeaderboardTable({
           const badges = [accBadge, costBadge, latBadge].filter(Boolean);
 
           return (
-            <div>
+            <div className="max-w-[200px]">
               <div className="flex items-center gap-2">
-                <span className="font-medium text-sm text-zinc-900 dark:text-zinc-50">
+                <span className="font-medium text-sm text-zinc-900 dark:text-zinc-50 truncate">
                   {model.model}
                 </span>
                 {badges.slice(0, 1).map((badge, i) => (
                   <span
                     key={i}
                     className={cn(
-                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium leading-none",
+                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium leading-none shrink-0",
                       badge?.className,
                     )}
                   >
@@ -228,7 +208,7 @@ export function LeaderboardTable({
                 ))}
               </div>
               {badges.length > 1 && (
-                <div className="flex gap-1.5 mt-1">
+                <div className="flex gap-1.5 mt-1 flex-wrap">
                   {badges.slice(1).map((badge, i) => (
                     <span
                       key={i}
@@ -255,15 +235,7 @@ export function LeaderboardTable({
         ),
       }),
       columnHelper.accessor("accuracy", {
-        header: () => (
-          <button
-            onClick={() => handleSort("accuracy")}
-            className="flex items-center font-medium"
-          >
-            Accuracy
-            {getSortIcon("accuracy")}
-          </button>
-        ),
+        header: "Accuracy",
         cell: ({ getValue }) => {
           const val = getValue();
           return (
@@ -273,21 +245,13 @@ export function LeaderboardTable({
                 getAccuracyColor(val),
               )}
             >
-              {formatAccuracy(val)}
+              {val !== null ? formatAccuracy(val) : "N/A"}
             </span>
           );
         },
       }),
       columnHelper.accessor("latency", {
-        header: () => (
-          <button
-            onClick={() => handleSort("latency")}
-            className="flex items-center font-medium"
-          >
-            Latency
-            {getSortIcon("latency")}
-          </button>
-        ),
+        header: "Latency",
         cell: ({ getValue }) => {
           const val = getValue();
           return (
@@ -297,21 +261,13 @@ export function LeaderboardTable({
                 getLatencyColor(val),
               )}
             >
-              {formatLatency(val)}
+              {val !== null ? formatLatency(val) : "N/A"}
             </span>
           );
         },
       }),
       columnHelper.accessor("costPer1k", {
-        header: () => (
-          <button
-            onClick={() => handleSort("costPer1k")}
-            className="flex items-center font-medium"
-          >
-            Cost/1k
-            {getSortIcon("costPer1k")}
-          </button>
-        ),
+        header: "Cost/1k",
         cell: ({ getValue }) => {
           const val = getValue();
           return (
@@ -321,43 +277,33 @@ export function LeaderboardTable({
                 getCostColor(val),
               )}
             >
-              {formatCost(val)}
+              {val !== null ? formatCost(val) : "N/A"}
             </span>
           );
         },
       }),
       columnHelper.accessor("evaluatedAt", {
-        header: () => (
-          <button
-            onClick={() => handleSort("evaluatedAt")}
-            className="flex items-center font-medium"
-          >
-            Evaluated
-            {getSortIcon("evaluatedAt")}
-          </button>
-        ),
+        header: "Evaluated",
         cell: ({ getValue }) => (
           <span className="text-sm text-zinc-600 dark:text-zinc-400 tabular-nums">
-            {formatDate(getValue())}
+            {getValue() ? formatDate(getValue()) : "N/A"}
           </span>
         ),
       }),
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sortField, sortDirection, insights, models],
+    [insights, columnHelper],
   );
 
   const table = useReactTable({
     data: models,
     columns,
-    state: { sorting },
-    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    });
+  });
+
+  const sortableColumnIds = ["accuracy", "latency", "costPer1k", "evaluatedAt"] as const;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+    <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800" role="region" aria-label="Model leaderboard table">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -366,22 +312,52 @@ export function LeaderboardTable({
                 key={headerGroup.id}
                 className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50"
               >
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className={cn(
-                      "px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider",
-                      header.id === "rank" && "w-12",
-                    )}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </th>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  const colId = header.id;
+                  const isSortable = sortableColumnIds.includes(colId as typeof sortableColumnIds[number]);
+                  const isSorted = sort.field === colId;
+                  const dir = isSorted ? sort.direction : null;
+
+                  const ariaSort = isSorted
+                    ? (dir === "asc" ? "ascending" as const : "descending" as const)
+                    : (isSortable ? "none" as const : undefined);
+
+                  const Icon = !isSorted
+                    ? ArrowUpDown
+                    : dir === "asc"
+                      ? ArrowUp
+                      : ArrowDown;
+
+                  return (
+                    <th
+                      key={header.id}
+                      scope="col"
+                      aria-sort={ariaSort}
+                      className={cn(
+                        "px-4 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider",
+                        header.id === "rank" && "w-12",
+                      )}
+                    >
+                      {header.isPlaceholder ? null : isSortable ? (
+                        <button
+                          onClick={() =>
+                            onSortChange(
+                              isSorted
+                                ? { field: colId as "accuracy" | "latency" | "costPer1k" | "evaluatedAt", direction: dir === "asc" ? "desc" : "asc" }
+                                : { field: colId as "accuracy" | "latency" | "costPer1k" | "evaluatedAt", direction: "desc" },
+                            )
+                          }
+                          className="flex items-center gap-1 font-medium hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                        </button>
+                      ) : (
+                        flexRender(header.column.columnDef.header, header.getContext())
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>
@@ -389,7 +365,7 @@ export function LeaderboardTable({
             {loading ? (
               <SkeletonRows />
             ) : error ? (
-              <ErrorState message={error} />
+              <ErrorState message={error} onRetry={onRetry} />
             ) : models.length === 0 ? (
               <EmptyState />
             ) : (
@@ -430,4 +406,4 @@ export function LeaderboardTable({
       </div>
     </div>
   );
-}
+});

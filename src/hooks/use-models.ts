@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type {
   ModelEvaluation,
   SortField,
   SortDirection,
+  ModelsApiData,
 } from "@/lib/types";
 
 interface UseModelsReturn {
@@ -34,6 +35,7 @@ export function useModels(): UseModelsReturn {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -43,6 +45,10 @@ export function useModels(): UseModelsReturn {
   }, [search]);
 
   const fetchModels = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     setError(null);
     try {
@@ -52,23 +58,37 @@ export function useModels(): UseModelsReturn {
       if (sortField) params.set("sortField", sortField);
       params.set("sortDirection", sortDirection);
 
-      const res = await fetch(`/api/models?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed to fetch models");
-      const data = await res.json();
+      const res = await fetch(`/api/models?${params.toString()}`, {
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(
+          body?.error?.message ?? `Request failed (${res.status})`,
+        );
+      }
+
+      const json = await res.json();
+      const data = json.data as ModelsApiData;
       setModels(data.models);
       setProviders(data.providers);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(
         err instanceof Error ? err.message : "An error occurred",
       );
     } finally {
-      setLoading(false);
+      if (controller === abortRef.current) {
+        setLoading(false);
+      }
     }
   }, [debouncedSearch, provider, sortField, sortDirection]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchModels();
+    return () => abortRef.current?.abort();
   }, [fetchModels]);
 
   return {

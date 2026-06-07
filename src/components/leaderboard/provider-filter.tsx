@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Select } from "@/components/ui/select";
 
 interface ProviderFilterProps {
@@ -8,7 +9,7 @@ interface ProviderFilterProps {
   onChange: (value: string) => void;
 }
 
-export function ProviderFilter({
+export const ProviderFilter = memo(function ProviderFilter({
   providers,
   value,
   onChange,
@@ -24,4 +25,4 @@ export function ProviderFilter({
       aria-label="Filter by provider"
     />
   );
-}
+});

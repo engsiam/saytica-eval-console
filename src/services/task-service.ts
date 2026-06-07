@@ -3,20 +3,17 @@ import {
   getTaskById,
   updateTaskStatus,
 } from "@/repositories/task-repository";
-import type { ClientSummary, ProjectSummary, Task, TaskStatus } from "@/lib/types";
+import type { ClientSummary, ProjectSummary, Task, TaskId, TaskStatus } from "@/lib/types";
 
 export function getTasks(): Task[] {
   return getAllTasks();
 }
 
-export function getTask(id: string): Task | null {
+export function getTask(id: TaskId): Task | null {
   return getTaskById(id) ?? null;
 }
 
-export function updateStatus(
-  id: string,
-  status: TaskStatus,
-): Task | null {
+export function updateStatus(id: TaskId, status: TaskStatus): Task | null {
   return updateTaskStatus(id, status);
 }
 
@@ -39,7 +36,7 @@ export function getClientSummary(): ClientSummary {
         (t) => t.status === "done",
       ).length;
       return {
-        projectId,
+        projectId: projectId as Task["projectId"],
         projectName: projectTasks[0]?.projectName ?? "Unknown",
         totalTasks: projectTasks.length,
         completedTasks: completed,
